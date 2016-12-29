@@ -14,7 +14,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifndef YAF_VIEW_INTERFACE_H
 #define YAF_VIEW_INTERFACE_H
 

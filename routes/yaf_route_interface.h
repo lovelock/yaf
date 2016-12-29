@@ -14,7 +14,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifndef YAF_ROUTER_INTERFACE_H
 #define YAF_ROUTER_INTERFACE_H
 
@@ -43,7 +42,7 @@ YAF_END_ARG_INFO()
 
 extern zend_class_entry *yaf_route_ce;
 
-yaf_route_t * yaf_route_instance(yaf_route_t *this_ptr,  zval *config TSRMLS_DC);
+yaf_route_t * yaf_route_instance(yaf_route_t *this_ptr,  zval *config);
 
 YAF_STARTUP_FUNCTION(route);
 

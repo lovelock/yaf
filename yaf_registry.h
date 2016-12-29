@@ -14,7 +14,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifndef YAF_REGISTRY_H
 #define YAF_REGISTRY_H
 
@@ -25,6 +24,7 @@ extern zend_class_entry *yaf_registry_ce;
 
 YAF_STARTUP_FUNCTION(registry);
 #endif
+
 /*
  * Local variables:
  * tab-width: 4

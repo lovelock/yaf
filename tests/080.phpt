@@ -1,10 +1,8 @@
 --TEST--
-Autoloading the classes under library
+PHP7 didn't display Error.
 --SKIPIF--
 <?php if (!extension_loaded("yaf")) print "skip"; ?>
 --INI--
-yaf.use_spl_autoload=0
-yaf.lowcase_path=0
 yaf.use_namespace=0
 --FILE--
 <?php 
@@ -20,26 +18,23 @@ $config = array(
 file_put_contents(APPLICATION_PATH . "/Bootstrap.php", <<<PHP
 <?php
    class Bootstrap extends Yaf_Bootstrap_Abstract {
-       public function _initTest() {
-			Yaf_Loader::getInstance()->registerLocalNamespace("Test");
-			Yaf_Registry::set("test", new Test());
-       }
    }
 PHP
 );
 
-file_put_contents(APPLICATION_PATH . "/library/Test.php", <<<PHP
+file_put_contents(APPLICATION_PATH . "/controllers/Index.php", <<<PHP
 <?php
-class Test {
-	public function __construct() {
-		var_dump("okey");
-	}
+class IndexController extends Yaf_Controller_Abstract {
+
+    public function indexAction() {
+        geoge();//funciton undefined!    
+    }    
 }
 PHP
 );
 
 $app = new Yaf_Application($config);
-$response = $app->bootstrap();
+$app->bootstrap()->run();
 ?>
 --CLEAN--
 <?php
@@ -47,4 +42,9 @@ require "build.inc";
 shutdown();
 ?>
 --EXPECTF--
-string(4) "okey"
+Fatal error: Uncaught Error: Call to undefined function geoge() in %s:5
+Stack trace:
+#0 [internal function]: IndexController->indexAction()
+#1 %s080.php(30): Yaf_Application->run()
+#2 {main}
+  thrown in %s on line %d

@@ -14,13 +14,12 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "php.h"
-#include "ext/standard/php_smart_str.h" /* for smart_str */
+#include "zend_smart_str.h" /* for smart_str */
 
 #include "php_yaf.h"
 #include "yaf_namespace.h"
@@ -41,47 +40,39 @@ ZEND_BEGIN_ARG_INFO_EX(yaf_route_map_construct_arginfo, 0, 0, 0)
 ZEND_END_ARG_INFO()
 /* }}} */
 
-/* {{{ yaf_route_t * yaf_route_map_instance(yaf_route_t *this_ptr, zend_bool controller_prefer, char *delim, uint len TSRMLS_DC)
- */
-yaf_route_t * yaf_route_map_instance(yaf_route_t *this_ptr, zend_bool controller_prefer, char *delim, uint len TSRMLS_DC) {
-	yaf_route_t *instance;
-
-	if (this_ptr) {
-		instance  = this_ptr;
-	} else {
-		MAKE_STD_ZVAL(instance);
-		object_init_ex(instance, yaf_route_map_ce);
-	}
+yaf_route_t * yaf_route_map_instance(yaf_route_t *this_ptr, zend_bool controller_prefer, zend_string *delim) /* {{{ */{
+	if (Z_ISUNDEF_P(this_ptr)) {
+		object_init_ex(this_ptr, yaf_route_map_ce);
+	} 
 
 	if (controller_prefer) {
-		zend_update_property_bool(yaf_route_map_ce, instance,
-				ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1 TSRMLS_CC);
+		zend_update_property_bool(yaf_route_map_ce, this_ptr,
+				ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1);
 	}
 
-	if (delim && len) {
-		zend_update_property_stringl(yaf_route_map_ce, instance,
-				ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), delim, len TSRMLS_CC);
+	if (delim && ZSTR_LEN(delim)) {
+		zend_update_property_str(yaf_route_map_ce, this_ptr, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), delim);
 	}
 
-	return instance;
+	return this_ptr;
 }
 /* }}} */
 
-/** {{{ int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request TSRMLS_DC)
+/** {{{ int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request)
 */
-int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request TSRMLS_DC) {
-	zval *ctl_prefer, *delimer, *zuri, *base_uri, *params;
+int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request) {
+	zval *ctl_prefer, *delimer, *zuri, *base_uri, params;
 	char *req_uri, *tmp, *rest, *ptrptr, *seg;
 	char *query_str = NULL;
 	uint seg_len = 0;
 
 	smart_str route_result = {0};
 
-	zuri 	 = zend_read_property(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_URI), 1 TSRMLS_CC);
-	base_uri = zend_read_property(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_BASE), 1 TSRMLS_CC);
+	zuri = zend_read_property(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_URI), 1, NULL);
+	base_uri = zend_read_property(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_BASE), 1, NULL);
 
-	ctl_prefer = zend_read_property(yaf_route_map_ce, route, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1 TSRMLS_CC);
-	delimer	   = zend_read_property(yaf_route_map_ce, route, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), 1 TSRMLS_CC);
+	ctl_prefer = zend_read_property(yaf_route_map_ce, route, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1, NULL);
+	delimer	   = zend_read_property(yaf_route_map_ce, route, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), 1, NULL);
 
 	if (base_uri && IS_STRING == Z_TYPE_P(base_uri)
 			&& !strncasecmp(Z_STRVAL_P(zuri), Z_STRVAL_P(base_uri), Z_STRLEN_P(base_uri))) {
@@ -122,18 +113,22 @@ int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request TSRMLS_DC) {
 		seg = php_strtok_r(NULL, YAF_ROUTER_URL_DELIMIETER, &ptrptr);
 	}
 
-	if (route_result.len) {
-		if (Z_BVAL_P(ctl_prefer)) {
-			zend_update_property_stringl(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_CONTROLLER), route_result.c, route_result.len - 1 TSRMLS_CC);
+	if (route_result.s) {
+		ZSTR_LEN(route_result.s)--;
+		ZSTR_VAL(route_result.s)[ZSTR_LEN(route_result.s)] = '\0';
+		if (Z_TYPE_P(ctl_prefer) == IS_TRUE) {
+			zend_update_property_str(yaf_request_ce,
+					request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_CONTROLLER), route_result.s);
 		} else {
-			zend_update_property_stringl(yaf_request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), route_result.c, route_result.len - 1 TSRMLS_CC);
+			zend_update_property_str(yaf_request_ce,
+					request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), route_result.s);
 		}
-		efree(route_result.c);
+		smart_str_free(&route_result);
 	}
 
 	if (query_str) {
-		params = yaf_router_parse_parameters(query_str TSRMLS_CC);
-		(void)yaf_request_set_params_multi(request, params TSRMLS_CC);
+		(void)yaf_router_parse_parameters(query_str, &params);
+		(void)yaf_request_set_params_multi(request, &params);
 		zval_ptr_dtor(&params);
 		efree(query_str);
 	}
@@ -149,123 +144,118 @@ int yaf_route_map_route(yaf_route_t *route, yaf_request_t *request TSRMLS_DC) {
 PHP_METHOD(yaf_route_map, route) {
 	yaf_request_t *request;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O", &request, yaf_request_ce) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "O", &request, yaf_request_ce) == FAILURE) {
 		return;
 	} else {
-		RETURN_BOOL(yaf_route_map_route(getThis(), request TSRMLS_CC));
+		RETURN_BOOL(yaf_route_map_route(getThis(), request));
 	}
 }
 /* }}} */
 
-/** {{{ zval * yaf_route_map_assemble(zval *info, zval *query TSRMLS_DC)
+/** {{{ zend_string * yaf_route_map_assemble(zval *info, zval *query)
  */
-zval * yaf_route_map_assemble(yaf_route_t *this_ptr, zval *info, zval *query TSRMLS_DC) {
-	char *tmp, *ptrptr, *pname;
-	smart_str tvalue = {0};
-	uint tmp_len, has_delim = 0;
-	zval *uri, *delim, *ctl_prefer, **tmp_data;
+zend_string * yaf_route_map_assemble(yaf_route_t *this_ptr, zval *info, zval *query) {
+	char *seg, *ptrptr, *pname;
+	smart_str uri = {0};
+	size_t seg_len;
+	zend_bool has_delim = 0;
+	zval *delim, *ctl_prefer, *zv;
 
-	MAKE_STD_ZVAL(uri);
-	
-	ctl_prefer = zend_read_property(yaf_route_map_ce, this_ptr, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1 TSRMLS_CC);
-	delim = zend_read_property(yaf_route_map_ce, this_ptr, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), 1 TSRMLS_CC);
+	ctl_prefer = zend_read_property(yaf_route_map_ce, this_ptr, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 1, NULL);
+	delim = zend_read_property(yaf_route_map_ce, this_ptr, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER), 1, NULL);
+
 	if (IS_STRING == Z_TYPE_P(delim) && Z_STRLEN_P(delim)) {
 		has_delim = 1;
 	}
 
 	do {
-		if (Z_BVAL_P(ctl_prefer)) {
-			if (zend_hash_find(Z_ARRVAL_P(info), ZEND_STRS(YAF_ROUTE_ASSEMBLE_ACTION_FORMAT), (void **)&tmp_data) == SUCCESS) {
-				pname = estrndup(Z_STRVAL_PP(tmp_data), Z_STRLEN_PP(tmp_data));
+		if (Z_TYPE_P(ctl_prefer) == IS_TRUE) {
+			if ((zv = zend_hash_str_find(Z_ARRVAL_P(info),
+					ZEND_STRL(YAF_ROUTE_ASSEMBLE_ACTION_FORMAT))) != NULL && Z_TYPE_P(zv) == IS_STRING) {
+				pname = estrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv));
 			} else {
-				yaf_trigger_error(YAF_ERR_TYPE_ERROR TSRMLS_CC, "%s", "Undefined the 'action' parameter for the 1st parameter");
+				yaf_trigger_error(YAF_ERR_TYPE_ERROR, "%s",
+						"Undefined the 'action' parameter for the 1st parameter");
 				break;
 			}
 		} else {
-			if (zend_hash_find(Z_ARRVAL_P(info), ZEND_STRS(YAF_ROUTE_ASSEMBLE_CONTROLLER_FORMAT), (void **)&tmp_data) == SUCCESS) {
-				pname = estrndup(Z_STRVAL_PP(tmp_data), Z_STRLEN_PP(tmp_data));
+			if ((zv = zend_hash_str_find(Z_ARRVAL_P(info),
+					ZEND_STRL(YAF_ROUTE_ASSEMBLE_CONTROLLER_FORMAT))) != NULL && Z_TYPE_P(zv) == IS_STRING) {
+				pname = estrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv));
 			} else {
-				yaf_trigger_error(YAF_ERR_TYPE_ERROR TSRMLS_CC, "%s", "Undefined the 'controller' parameter for the 1st parameter");
+				yaf_trigger_error(YAF_ERR_TYPE_ERROR, "%s",
+						"Undefined the 'controller' parameter for the 1st parameter");
 				break;
 			}
 		}
 
-		tmp = php_strtok_r(pname, "_", &ptrptr);	
-		while(tmp) {
-			tmp_len = strlen(tmp);
-			if (tmp_len) {
-				smart_str_appendc(&tvalue, '/');
-				smart_str_appendl(&tvalue, tmp, tmp_len);
+		seg = php_strtok_r(pname, "_", &ptrptr);	
+		while (seg) {
+			seg_len = strlen(seg);
+			if (seg_len) {
+				smart_str_appendc(&uri, '/');
+				smart_str_appendl(&uri, seg, seg_len);
 			}
-			tmp = php_strtok_r(NULL, "_", &ptrptr);
+			seg = php_strtok_r(NULL, "_", &ptrptr);
 		}
 		efree(pname);
 
 		if (query && IS_ARRAY == Z_TYPE_P(query)) {
-			uint key_len, i = 0;
-			char *key;
-			ulong key_idx;
-			zval **tmp_data;
+			zend_bool start = 1;
+			zend_string *key, *val;
 
 			if (has_delim) {
-				smart_str_appendc(&tvalue, '/');
-				smart_str_appendl(&tvalue, Z_STRVAL_P(delim), Z_STRLEN_P(delim));
+				smart_str_appendc(&uri, '/');
+				smart_str_appendl(&uri, Z_STRVAL_P(delim), Z_STRLEN_P(delim));
 			}
 
-			for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(query));
-					zend_hash_get_current_data(Z_ARRVAL_P(query), (void **)&tmp_data) == SUCCESS;
-					zend_hash_move_forward(Z_ARRVAL_P(query))) {
-
-				if (IS_STRING == Z_TYPE_PP(tmp_data)
-						&& HASH_KEY_IS_STRING == zend_hash_get_current_key_ex(Z_ARRVAL_P(query), &key, &key_len, &key_idx, 0, NULL)) {
-
+            ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(query), key, zv) {
+				if (key) {
+					val = zval_get_string(zv);
 					if (has_delim) {
-						smart_str_appendc(&tvalue, '/');
-						smart_str_appendl(&tvalue, key, key_len - 1);
-						smart_str_appendc(&tvalue, '/');
-						smart_str_appendl(&tvalue, Z_STRVAL_PP(tmp_data), Z_STRLEN_PP(tmp_data));
+						smart_str_appendc(&uri, '/');
+						smart_str_appendl(&uri, ZSTR_VAL(key), ZSTR_LEN(key));
+						smart_str_appendc(&uri, '/');
+						smart_str_appendl(&uri, ZSTR_VAL(val), ZSTR_LEN(val));
 					} else {
-						if (i == 0) {
-							smart_str_appendc(&tvalue, '?');
-							smart_str_appendl(&tvalue, key, key_len - 1);
-							smart_str_appendc(&tvalue, '=');
-							smart_str_appendl(&tvalue, Z_STRVAL_PP(tmp_data), Z_STRLEN_PP(tmp_data));
+						if (start) {
+							smart_str_appendc(&uri, '?');
+							smart_str_appendl(&uri, ZSTR_VAL(key), ZSTR_LEN(key));
+							smart_str_appendc(&uri, '=');
+							smart_str_appendl(&uri, ZSTR_VAL(val), ZSTR_LEN(val));
+							start = 0;
 						} else {
-							smart_str_appendc(&tvalue, '&');
-							smart_str_appendl(&tvalue, key, key_len - 1);
-							smart_str_appendc(&tvalue, '=');
-							smart_str_appendl(&tvalue, Z_STRVAL_PP(tmp_data), Z_STRLEN_PP(tmp_data));
+							smart_str_appendc(&uri, '&');
+							smart_str_appendl(&uri, ZSTR_VAL(key), ZSTR_LEN(key));
+							smart_str_appendc(&uri, '=');
+							smart_str_appendl(&uri, ZSTR_VAL(val), ZSTR_LEN(val));
 						}
 					}
+					zend_string_release(val);
 				}
-				i += 1;
-			}
+			} ZEND_HASH_FOREACH_END();
 		}
 
-		smart_str_0(&tvalue);
-		ZVAL_STRING(uri, tvalue.c, 1);
-		smart_str_free(&tvalue);
-		return uri;
+		smart_str_0(&uri);
+		return uri.s;
 	} while (0);
 
-	ZVAL_NULL(uri);
-	return uri;
+	return NULL;
 }
+/* }}} */
 
 /** {{{ proto public Yaf_Route_Simple::__construct(bool $controller_prefer=FALSE, string $delimer = '#!')
 */
 PHP_METHOD(yaf_route_map, __construct) {
-	char *delim	= NULL;
-	uint delim_len = 0;
+	zend_string *delim	= NULL;
 	zend_bool controller_prefer = 0;
+	zval *self = getThis();
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|bs",
-			   	&controller_prefer, &delim, &delim_len) == FAILURE) {
-		YAF_UNINITIALIZED_OBJECT(getThis());
+	if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "|bS", &controller_prefer, &delim) == FAILURE) {
 		return;
 	}
 
-	(void)yaf_route_map_instance(getThis(), controller_prefer, delim, delim_len TSRMLS_CC);
+	(void)yaf_route_map_instance(self, controller_prefer, delim);
 }
 /* }}} */
 
@@ -273,14 +263,15 @@ PHP_METHOD(yaf_route_map, __construct) {
 */
 PHP_METHOD(yaf_route_map, assemble) {
 	zval *info, *query = NULL;
-	zval *return_uri;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|a", &info, &query) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "a|a", &info, &query) == FAILURE) {
         return;
     } else {
-        if ((return_uri = yaf_route_map_assemble(getThis(), info, query TSRMLS_CC))) {
-            RETURN_ZVAL(return_uri, 0, 1);
-        }
+		zend_string *str;
+        if ((str = yaf_route_map_assemble(getThis(), info, query)) != NULL) {
+			RETURN_STR(str);
+		}
+		RETURN_NULL();
     }
 }
 /* }}} */
@@ -301,13 +292,13 @@ YAF_STARTUP_FUNCTION(route_map) {
 	zend_class_entry ce;
 
 	YAF_INIT_CLASS_ENTRY(ce, "Yaf_Route_Map", "Yaf\\Route\\Map", yaf_route_map_methods);
-	yaf_route_map_ce = zend_register_internal_class_ex(&ce, NULL, NULL TSRMLS_CC);
-	zend_class_implements(yaf_route_map_ce TSRMLS_CC, 1, yaf_route_ce);
+	yaf_route_map_ce = zend_register_internal_class(&ce);
+	zend_class_implements(yaf_route_map_ce, 1, yaf_route_ce);
 
-	yaf_route_map_ce->ce_flags |= ZEND_ACC_FINAL_CLASS;
+	yaf_route_map_ce->ce_flags |= ZEND_ACC_FINAL;
 
-	zend_declare_property_bool(yaf_route_map_ce, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 0, ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_null(yaf_route_map_ce, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER),  ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_bool(yaf_route_map_ce, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_CTL_PREFER), 0, ZEND_ACC_PROTECTED);
+	zend_declare_property_null(yaf_route_map_ce, ZEND_STRL(YAF_ROUTE_MAP_VAR_NAME_DELIMETER),  ZEND_ACC_PROTECTED);
 
 	return SUCCESS;
 }

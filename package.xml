@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2015-09-06</date>
- <time>17:42:00</time>
+ <date>2016-08-18</date>
+ <time>13:00:00</time>
  <version>
-  <release>2.3.5</release>
-  <api>2.3.5</api>
+  <release>3.0.4</release>
+  <api>3.0.4</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed bug (redirect doesn't work)
+  - Fixed bug wrong variables scope in tpl
+  - Minor optimizations 
  </notes>
  <contents> 
   <dir name="/"> 
@@ -186,6 +187,9 @@
     <file name="077.phpt" role="test" />
     <file name="078.phpt" role="test" />
     <file name="079.phpt" role="test" />
+    <file name="080.phpt" role="test" />
+    <file name="081.phpt" role="test" />
+    <file name="082.phpt" role="test" />
     <file name="build.inc" role="test" />
     <file name="bug61493.phpt" role="test" />
     <file name="bug63381.phpt" role="test" />
@@ -195,6 +199,9 @@
     <file name="bug70913.phpt" role="test" />
     <file name="issue134.phpt" role="test" />
     <file name="issue163.phpt" role="test" />
+    <file name="issue231.phpt" role="test" />
+    <file name="issue232.phpt" role="test" />
+    <file name="issue303.phpt" role="test" />
     <file name="simple.ini" role="test" />
     <file name="system.ini" role="test" />
     <file name="multi-section.ini" role="test" />
@@ -204,8 +211,7 @@
  <dependencies> 
   <required> 
    <php> 
-    <min>5.2.0</min> 
-    <max>5.6.99</max>
+    <min>7.0.0</min> 
    </php> 
    <pearinstaller> 
     <min>1.4.0</min> 
@@ -216,10 +222,10 @@
  <extsrcrelease />
  <changelog> 
   <release> 
-   <date>2015-09-06</date> 
+   <date>2016-08-18</date> 
    <version> 
-    <release>2.3.5</release> 
-    <api>2.3.5</api> 
+    <release>3.0.4</release> 
+    <api>3.0.4</api> 
    </version> 
    <stability> 
     <release>stable</release> 
@@ -227,15 +233,16 @@
    </stability> 
    <license uri="http://www.php.net/license">PHP License</license> 
    <notes>
-    - Fixed bug (redirect doesn't work)
+    - Fixed bug wrong variables scope in tpl
+    - Minor optimizations 
    </notes> 
   </release> 
 
   <release> 
-   <date>2015-08-13</date> 
+   <date>2016-07-02</date> 
    <version> 
-    <release>2.3.4</release> 
-    <api>2.3.4</api> 
+    <release>3.0.3</release> 
+    <api>3.0.3</api> 
    </version> 
    <stability> 
     <release>stable</release> 
@@ -243,10 +250,60 @@
    </stability> 
    <license uri="http://www.php.net/license">PHP License</license> 
    <notes>
-    - Fixed ISSUE #134
-    - Fixed ISSUE #181
-    - Fixed invalid read(segfault) with php-5.4
-    - Fixed bug (Exception in preDispatch is not caught)
+    - Fixed issue #273 (segfault if stdclass passed to dispatch)
+    - PHP-7.1 compatible fixes
+   </notes> 
+  </release> 
+  <release> 
+   <date>2015-12-28</date> 
+   <version> 
+    <release>3.0.2</release> 
+    <api>3.0.2</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed issue #231 (php-fpm worker core dump BUG)
+    - Attempt to fix issue #226 (Segfault on windows7 64bits)
+    - Fixed issue #232 (segfault with Yaf_Route_Simple)
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2015-12-12</date> 
+   <version> 
+    <release>3.0.1</release> 
+    <api>3.0.1</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed auto_render bug
+    - Fixed issue #220 (segfault on read_property)
+    - Fixed bug of baseuri setting
+    - Fixed issue #163 (forward from init controller)
+    - Fixed Bug #70913 (Segfault while new Yaf_Controller)
+   </notes> 
+  </release> 
+  <release> 
+   <date>2015-10-27</date> 
+   <version> 
+    <release>3.0.0</release> 
+    <api>3.0.0</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Release Yaf for PHP7
    </notes> 
   </release> 
   <release> 

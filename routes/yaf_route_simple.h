@@ -14,7 +14,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifndef YAF_ROUTER_SIMPLE_H
 #define YAF_ROUTER_SIMPLE_H
 
@@ -24,7 +23,7 @@
 
 extern zend_class_entry *yaf_route_simple_ce;
 
-yaf_route_t * yaf_route_simple_instance(yaf_route_t *this_ptr, zval *module, zval *controller, zval *action TSRMLS_DC);
+yaf_route_t *yaf_route_simple_instance(yaf_route_t *this_ptr, zval *module, zval *controller, zval *action);
 
 YAF_STARTUP_FUNCTION(route_simple);
 

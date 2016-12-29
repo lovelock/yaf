@@ -14,7 +14,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 #ifndef YAF_SESSION_H
 #define YAF_SESSION_H
 
@@ -27,6 +26,7 @@ extern zend_class_entry *yaf_session_ce;
 PHPAPI void php_session_start(TSRMLS_D);
 YAF_STARTUP_FUNCTION(session);
 #endif
+
 /*
  * Local variables:
  * tab-width: 4
